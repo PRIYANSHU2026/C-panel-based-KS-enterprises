@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Product } from "../../../lib/types";
+import type { Product } from "../../../lib/types";
 import {
   Search, Plus, Edit2, Trash2, Filter,
   ArrowDown, ArrowUp, RefreshCw, X
@@ -32,7 +32,7 @@ export default function ProductsPage() {
     const order = searchParams.get("order");
     const category = searchParams.get("category");
 
-    if (page) setCurrentPage(parseInt(page));
+    if (page) setCurrentPage(Number.parseInt(page));
     if (search) setSearchTerm(search);
     if (sort) setSortBy(sort);
     if (order) setSortOrder(order);

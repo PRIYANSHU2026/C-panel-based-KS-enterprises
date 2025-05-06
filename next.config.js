@@ -27,6 +27,41 @@ const nextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
+  async rewrites() {
+    return [
+      // API routes handling
+      {
+        source: '/api/:path*',
+        destination: '/api/:path*',
+      },
+    ];
+  },
+  // Ensure trailing slashes for consistent routing
+  trailingSlash: false,
+  // Handle prefetching behavior
+  reactStrictMode: true,
+  // Configure headers for security
+  async headers() {
+    return [
+      {
+        source: '/(.*)',
+        headers: [
+          {
+            key: 'X-Content-Type-Options',
+            value: 'nosniff',
+          },
+          {
+            key: 'X-Frame-Options',
+            value: 'DENY',
+          },
+          {
+            key: 'X-XSS-Protection',
+            value: '1; mode=block',
+          },
+        ],
+      },
+    ];
+  },
 };
 
 export default nextConfig;

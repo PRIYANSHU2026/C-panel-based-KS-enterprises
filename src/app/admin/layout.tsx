@@ -3,12 +3,12 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { User, Role } from "../../lib/types";
+import type { User } from "../../lib/types";
 
 // Icons
 import {
   Package, Users, UserCog, ShieldCheck, ClipboardCheck,
-  ChevronDown, ChevronRight, LogOut, Menu, X
+  ChevronDown, ChevronRight, LogOut, Menu, X, AlertCircle
 } from "lucide-react";
 
 interface AdminLayoutProps {
@@ -19,6 +19,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [authError, setAuthError] = useState("");
   const pathname = usePathname();
   const router = useRouter();
 
@@ -28,20 +29,31 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       try {
         // Simple check - in a real app, you'd validate the session server-side
         const userData = localStorage.getItem('admin_user');
+
         if (userData) {
-          setUser(JSON.parse(userData));
-        } else {
+          const parsedUser = JSON.parse(userData);
+          // Validate that the user data has the expected structure
+          if (parsedUser && parsedUser.username && parsedUser.role) {
+            setUser(parsedUser);
+          } else {
+            setAuthError("Invalid user data. Please log in again.");
+            localStorage.removeItem('admin_user');
+            setTimeout(() => router.push('/admin/login'), 2000);
+          }
+        } else if (pathname !== '/admin/login') {
           router.push('/admin/login');
         }
       } catch (error) {
         console.error('Auth check failed:', error);
+        setAuthError("Authentication error. Please log in again.");
+        setTimeout(() => router.push('/admin/login'), 2000);
       } finally {
         setLoading(false);
       }
     };
 
     checkAuth();
-  }, [router]);
+  }, [pathname, router]);
 
   const handleLogout = () => {
     localStorage.removeItem('admin_user');
@@ -65,8 +77,36 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     );
   }
 
-  if (!user) {
+  // Show auth error if needed
+  if (authError && pathname !== '/admin/login') {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="bg-red-50 border border-red-200 text-red-700 px-6 py-4 rounded-lg max-w-md">
+          <div className="flex items-start">
+            <AlertCircle className="mr-3 h-6 w-6 flex-shrink-0" />
+            <div>
+              <p className="font-medium">{authError}</p>
+              <p className="mt-2">Redirecting to login page...</p>
+              <button
+                onClick={() => router.push('/admin/login')}
+                className="mt-3 bg-red-100 text-red-800 px-3 py-1 rounded-md text-sm font-medium"
+              >
+                Go to Login
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user && pathname !== '/admin/login') {
     return <>{children}</>; // This allows the login page to render
+  }
+
+  // Login page doesn't need the admin layout
+  if (pathname === '/admin/login') {
+    return <>{children}</>;
   }
 
   const menuItems = [
@@ -152,11 +192,11 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
           <div className="px-6 py-4 border-t border-gray-200">
             <div className="flex items-center">
               <div className="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center text-white font-semibold">
-                {user.fullName?.charAt(0) || user.username.charAt(0)}
+                {user?.fullName?.charAt(0) || user?.username?.charAt(0) || 'A'}
               </div>
               <div className="ml-3">
-                <p className="text-sm font-medium text-gray-900">{user.fullName || user.username}</p>
-                <p className="text-xs text-gray-500">{user.role?.name || "User"}</p>
+                <p className="text-sm font-medium text-gray-900">{user?.fullName || user?.username || 'Admin'}</p>
+                <p className="text-xs text-gray-500">{user?.role?.name || "User"}</p>
               </div>
             </div>
           </div>

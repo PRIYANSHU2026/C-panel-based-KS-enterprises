@@ -13,9 +13,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 
 // Check request method
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    http_response_code(405); // Method Not Allowed
     echo json_encode([
         'success' => false,
-        'message' => 'Invalid request method'
+        'message' => 'Invalid request method. Only POST requests are allowed.'
     ]);
     exit;
 }
@@ -24,8 +25,12 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 $json = file_get_contents('php://input');
 $data = json_decode($json, true);
 
+// Log input for debugging (in a production environment, you'd remove this)
+error_log("Login attempt: " . substr($json, 0, 100));
+
 // Check if data is valid JSON
 if ($data === null && json_last_error() !== JSON_ERROR_NONE) {
+    http_response_code(400); // Bad Request
     echo json_encode([
         'success' => false,
         'message' => 'Invalid JSON data: ' . json_last_error_msg(),
@@ -39,6 +44,7 @@ $expected_username = 'admin';
 $expected_password = 'admin123';
 
 if (!isset($data['username']) || !isset($data['password'])) {
+    http_response_code(400); // Bad Request
     echo json_encode([
         'success' => false,
         'message' => 'Username and password are required',
@@ -74,10 +80,12 @@ if ($data['username'] === $expected_username && $data['password'] === $expected_
         'user' => $userData
     ]);
 } else {
+    http_response_code(401); // Unauthorized
     echo json_encode([
         'success' => false,
         'message' => 'Invalid username or password',
         'debug' => [
+            'username_provided' => $data['username'],
             'username_correct' => $data['username'] === $expected_username,
             'password_correct' => $data['password'] === $expected_password
         ]
